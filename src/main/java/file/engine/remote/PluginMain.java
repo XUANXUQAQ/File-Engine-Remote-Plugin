@@ -2,6 +2,7 @@ package file.engine.remote;
 
 import file.engine.remote.httpd.HttpServer;
 import file.engine.remote.utils.OpenFilePathUtil;
+import file.engine.remote.utils.VersionUtil;
 import file.engine.remote.utils.configs.ConfigsUtil;
 
 import javax.swing.*;
@@ -243,7 +244,7 @@ public class PluginMain extends Plugin {
      */
     @Override
     public String getVersion() {
-        return "1.0";
+        return VersionUtil._getPluginVersion();
     }
 
     /**
@@ -266,7 +267,7 @@ public class PluginMain extends Plugin {
     @Override
     @SuppressWarnings({"unused", "RedundantThrows"})
     public boolean isLatest() throws Exception {
-        return true;
+        return VersionUtil._isLatest();
     }
 
     /**
@@ -278,7 +279,7 @@ public class PluginMain extends Plugin {
      */
     @Override
     public String getUpdateURL() {
-        return null;
+        return VersionUtil._getUpdateURL();
     }
 
     /**
