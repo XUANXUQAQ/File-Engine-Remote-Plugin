@@ -1,0 +1,5 @@
+{
+  "className" : "file.engine.remote.PluginMain",
+  "identifier" : "remote",
+  "name" : "Remote"
+}
