@@ -14,7 +14,6 @@ public class ConfigsUtil {
     public static final String CONFIGURATION_PATH = "plugins\\Plugin configuration files\\Remote";
     public static final String CONFIGURATION_FILE = Path.of(CONFIGURATION_PATH, "settings.json").toString();
     private static final int DEFAULT_PORT = 23333;
-    private static final int DEFAULT_MAX_RESULTS_PER_PAGE = 20;
     private Map<String, Object> configMap;
     private static volatile ConfigsUtil instance;
 
@@ -31,10 +30,6 @@ public class ConfigsUtil {
 
     public int getPort() {
         return (int) configMap.getOrDefault("port", DEFAULT_PORT);
-    }
-
-    public int getMaxResultsPerPage() {
-        return (int) configMap.getOrDefault("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
     }
 
     @SuppressWarnings("unchecked")
@@ -61,7 +56,6 @@ public class ConfigsUtil {
             //初始化默认配置
             configMap = new HashMap<>();
             configMap.put("port", DEFAULT_PORT);
-            configMap.put("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
             Gson gson = GsonUtil.getInstance().getGson();
             String json = gson.toJson(configMap);
             Files.writeString(Path.of(CONFIGURATION_FILE), json);

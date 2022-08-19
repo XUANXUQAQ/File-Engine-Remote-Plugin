@@ -221,7 +221,7 @@ public class HttpServer extends NanoHTTPD {
         if (filePathList != null && !filePathList.isEmpty()) {
             String filePath = filePathList.get(0);
             Path path = Path.of(filePath);
-            if (Files.exists(path)) {
+            if (Files.exists(path) && Files.isRegularFile(path)) {
                 long length = Files.size(path);
                 BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(filePath));
                 return responseCORS(NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/octet-stream", inputStream, length));
