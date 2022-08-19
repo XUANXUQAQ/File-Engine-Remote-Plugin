@@ -10,7 +10,8 @@
     "@element-plus/icons-vue": "^2.0.9",
     "axios": "^0.27.2",
     "element-plus": "^2.2.13",
-    "vue": "^3.2.37"
+    "vue": "^3.2.37",
+    "vue-loading-overlay": "5.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^3.0.1",

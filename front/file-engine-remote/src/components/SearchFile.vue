@@ -37,7 +37,7 @@
         </div>
       </div>
     </div>
-    <div class="results">
+    <div v-if="searchResultsList.length !== 0" class="results">
       <div
         v-for="each in searchResultsList"
         :key="each.filePath"
@@ -56,6 +56,14 @@
         </div>
       </div>
     </div>
+    <div v-else class="results">
+      <div
+        class="each-result"
+        style="text-align: center; display: flex; justify-content: center"
+      >
+        {{ tips }}
+      </div>
+    </div>
     <div class="page">
       <div class="page-container">
         <el-pagination
@@ -72,6 +80,8 @@
 
 <script>
 import searchApi from "@/api/searchApi.js";
+import { useLoading } from "vue-loading-overlay";
+
 export default {
   data() {
     return {
@@ -81,6 +91,7 @@ export default {
       pageNum: 1,
       pageSize: 10,
       totalPages: 1,
+      tips: "还没有任何结果",
     };
   },
   watch: {
@@ -154,20 +165,27 @@ export default {
         })
         .catch((err2) => {
           console.error(err2);
+          self.tips = "获取数据失败";
         });
     },
     search() {
+      this.tips = "";
       this.pageNum = 1;
       this.totalPages = 1;
       const str = this.generateSearchStr();
+      const $loading = useLoading();
       // 发起请求
+      const loader = $loading.show();
       searchApi
         .search(str)
         .then(() => {
           this.getResults();
+          loader.hide();
         })
         .catch((err) => {
           console.error(err);
+          self.tips = "发送搜索请求失败";
+          loader.hide();
         });
     },
   },

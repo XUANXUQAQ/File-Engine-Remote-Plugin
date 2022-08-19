@@ -19,6 +19,7 @@ public class HttpServer extends NanoHTTPD {
     private volatile ConcurrentLinkedQueue<String> searchResults;
     private static final Pattern semicolon = Pattern.compile(";");
     private static final HashMap<String, String> suffixMimeMap = new HashMap<>();
+    private static final int MAX_WAIT_TIME = 10_000; //10s
 
     static {
         suffixMimeMap.put("ez", "application/andrew-inset");
@@ -259,7 +260,7 @@ public class HttpServer extends NanoHTTPD {
                 searchResults = null;
                 isSearchInfoSet = true;
                 final long startWaitingTime = System.currentTimeMillis();
-                while (searchResults == null && System.currentTimeMillis() - startWaitingTime < 3000)
+                while (searchResults == null && System.currentTimeMillis() - startWaitingTime < MAX_WAIT_TIME)
                     Thread.onSpinWait();
                 if (searchResults != null) {
                     return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(null, 0).toString()));
