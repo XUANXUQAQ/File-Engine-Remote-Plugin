@@ -15,7 +15,7 @@ public class ConfigsUtil {
     public static final String CONFIGURATION_FILE = Path.of(CONFIGURATION_PATH, "settings.json").toString();
     private static final int DEFAULT_PORT = 23333;
     private static final int DEFAULT_MAX_RESULTS_PER_PAGE = 20;
-    private Map<String, Object> configEntity;
+    private Map<String, Object> configMap;
     private static volatile ConfigsUtil instance;
 
     public static ConfigsUtil getInstance() throws IOException {
@@ -30,17 +30,18 @@ public class ConfigsUtil {
     }
 
     public int getPort() {
-        return (int) configEntity.getOrDefault("port", DEFAULT_PORT);
+        return (int) configMap.getOrDefault("port", DEFAULT_PORT);
     }
 
     public int getMaxResultsPerPage() {
-        return (int) configEntity.getOrDefault("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
+        return (int) configMap.getOrDefault("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
     }
 
+    @SuppressWarnings("unchecked")
     private void readConfiguration(String configPath) throws IOException {
         GsonUtil gsonUtil = GsonUtil.getInstance();
         Gson gson = gsonUtil.getGson();
-        configEntity = gson.fromJson(Files.readString(Path.of(configPath)), Map.class);
+        configMap = gson.fromJson(Files.readString(Path.of(configPath)), Map.class);
     }
 
     private ConfigsUtil(String path) throws IOException {
@@ -58,12 +59,11 @@ public class ConfigsUtil {
                 throw new RuntimeException("create settings.json failed..." + CONFIGURATION_FILE);
             }
             //初始化默认配置
-            configEntity = new HashMap<>() {{
-                put("port", DEFAULT_PORT);
-                put("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
-            }};
+            configMap = new HashMap<>();
+            configMap.put("port", DEFAULT_PORT);
+            configMap.put("maxResultsPerPage", DEFAULT_MAX_RESULTS_PER_PAGE);
             Gson gson = GsonUtil.getInstance().getGson();
-            String json = gson.toJson(configEntity);
+            String json = gson.toJson(configMap);
             Files.writeString(Path.of(CONFIGURATION_FILE), json);
         } else {
             //读取配置
