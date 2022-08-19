@@ -1,11 +1,13 @@
 package file.engine.remote;
 
 import file.engine.remote.httpd.HttpServer;
-import file.engine.remote.utils.OpenFilePathUtil;
+import file.engine.remote.utils.ColorUtils;
+import file.engine.remote.utils.OpenUtil;
 import file.engine.remote.utils.VersionUtil;
 import file.engine.remote.utils.configs.ConfigsUtil;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -17,7 +19,13 @@ import java.util.function.BiConsumer;
 
 public class PluginMain extends Plugin {
 
+    private Color backgroundColor;
+    private Color labelChosenColor;
+    private Color labelDefaultFontColor;
+    private Color labelChosenFontColor;
     private HttpServer httpServer;
+    private final String commandSet = ">set";
+    private final String commandOpen = ">open";
     private boolean isNotExit = true;
 
     /**
@@ -48,7 +56,10 @@ public class PluginMain extends Plugin {
      */
     @Override
     public void configsChanged(Map<String, Object> configs) {
-
+        backgroundColor = new Color((Integer) configs.get("defaultBackground"));
+        labelChosenColor = new Color((Integer) configs.get("labelColor"));
+        labelDefaultFontColor = new Color((Integer) configs.get("fontColor"));
+        labelChosenFontColor = new Color((Integer) configs.get("fontColorWithCoverage"));
     }
 
     /**
@@ -58,28 +69,32 @@ public class PluginMain extends Plugin {
      */
     @Override
     public void textChanged(String text) {
-        if (">set".equals(text)) {
+        if (commandSet.equals(text)) {
             try {
-                OpenFilePathUtil.openFolderByExplorer(ConfigsUtil.CONFIGURATION_FILE);
+                OpenUtil.openFolderByExplorer(ConfigsUtil.CONFIGURATION_FILE);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else if (">open".equals(text)) {
-            // todo 浏览器打开搜索界面
+        } else if (commandOpen.equals(text)) {
+            try {
+                OpenUtil.openBrowser(String.format("http://localhost:%d/index.html", ConfigsUtil.getInstance().getPort()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else {
             if (text != null && text.length() > 1) {
                 text = text.substring(1);
-                if ("set".startsWith(text)) {
-                    addToResultQueue(">set");
-                } else if ("open".startsWith(text)) {
-                    addToResultQueue(">open");
+                if (commandSet.substring(1).startsWith(text)) {
+                    addToResultQueue(commandSet);
+                } else if (commandOpen.substring(1).startsWith(text)) {
+                    addToResultQueue(commandOpen);
                 } else {
-                    addToResultQueue(">set");
-                    addToResultQueue(">open");
+                    addToResultQueue(commandSet);
+                    addToResultQueue(commandOpen);
                 }
             } else {
-                addToResultQueue(">set");
-                addToResultQueue(">open");
+                addToResultQueue(commandSet);
+                addToResultQueue(commandOpen);
             }
         }
     }
@@ -91,6 +106,10 @@ public class PluginMain extends Plugin {
     @Override
     public void loadPlugin(Map<String, Object> configs) throws RuntimeException {
         try {
+            backgroundColor = new Color((Integer) configs.get("defaultBackground"));
+            labelChosenColor = new Color((Integer) configs.get("labelColor"));
+            labelDefaultFontColor = new Color((Integer) configs.get("fontColor"));
+            labelChosenFontColor = new Color((Integer) configs.get("fontColorWithCoverage"));
             ConfigsUtil configsUtil = ConfigsUtil.getInstance();
             httpServer = new HttpServer(configsUtil.getPort());
             new Thread(() -> {
@@ -158,14 +177,18 @@ public class PluginMain extends Plugin {
     @Override
     public void keyPressed(KeyEvent e, String result) {
         if (e.getKeyCode() == 10) {
-            if (">set".equals(result)) {
+            if (commandSet.equals(result)) {
                 try {
-                    OpenFilePathUtil.openFolderByExplorer(ConfigsUtil.CONFIGURATION_FILE);
+                    OpenUtil.openFolderByExplorer(ConfigsUtil.CONFIGURATION_FILE);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-            } else if (">open".equals(result)) {
-                // TODO 浏览器打开搜索界面
+            } else if (commandOpen.equals(result)) {
+                try {
+                    OpenUtil.openBrowser(String.format("http://localhost:%d/index.html", ConfigsUtil.getInstance().getPort()));
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             }
         }
     }
@@ -293,7 +316,21 @@ public class PluginMain extends Plugin {
      */
     @Override
     public void showResultOnLabel(String result, JLabel label, boolean isChosen) {
-
+        String defaultFontColor = "#" + ColorUtils.parseColorHex(labelDefaultFontColor);
+        String fontColorHighLight = "#" + ColorUtils.parseColorHex(labelChosenFontColor);
+        String html = "<html><body><span%s>%s</span></body></html>";
+        if (commandSet.equals(result)) {
+            result = result + "<br>" + "打开设置文件位置";
+        } else if (commandOpen.equals(result)) {
+            result = result + "<br>" + "打开网页";
+        }
+        html = String.format(html, String.format(" style=\"color: %s\"", isChosen ? fontColorHighLight : defaultFontColor), result);
+        label.setText(html);
+        if (isChosen) {
+            label.setBackground(labelChosenColor);
+        } else {
+            label.setBackground(backgroundColor);
+        }
     }
 
     /**
