@@ -1,15 +1,13 @@
 package file.engine.remote.httpd;
 
 import fi.iki.elonen.NanoHTTPD;
+import lombok.SneakyThrows;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -178,6 +176,7 @@ public class HttpServer extends NanoHTTPD {
      *
      * @return Response
      */
+    @SneakyThrows
     @Override
     public Response serve(IHTTPSession session) {
         Method method = session.getMethod();
@@ -192,14 +191,31 @@ public class HttpServer extends NanoHTTPD {
                     searchResults = null;
                     isSearchInfoSet = true;
                     final long startWaitingTime = System.currentTimeMillis();
-                    while (searchResults == null && System.currentTimeMillis() - startWaitingTime > 3000)
+                    while (searchResults == null && System.currentTimeMillis() - startWaitingTime < 3000)
                         Thread.onSpinWait();
                     if (searchResults != null) {
-                        return NanoHTTPD.newFixedLengthResponse(ResBody.success(searchResults).toString());
+                        return NanoHTTPD.newFixedLengthResponse(ResBody.success(null, 0).toString());
                     } else {
                         return NanoHTTPD.newFixedLengthResponse(ResBody.error("waiting for search results too long").toString());
                     }
                 }
+            }
+        } else if (Method.GET.equals(method) && "/results".equals(uri)) {
+            // 获取结果
+            Map<String, List<String>> parameters = session.getParameters();
+            List<String> pageNumList = parameters.get("pageNum");
+            List<String> pageSizeList = parameters.get("pageSize");
+            if (!pageNumList.isEmpty() && !pageSizeList.isEmpty()) {
+                final int pageNum = Integer.parseInt(pageNumList.get(0));
+                final int pageSize = Integer.parseInt(pageSizeList.get(0));
+                ArrayList<String> results = new ArrayList<>(searchResults);
+                ArrayList<String> retArray = new ArrayList<>();
+                final int size = results.size();
+                final int pages = (int) Math.ceil((double) size / pageSize);
+                for (int i = (pageNum - 1) * pageSize; i < pageNum * pageSize && i < size; ++i) {
+                    retArray.add(results.get(i));
+                }
+                return NanoHTTPD.newFixedLengthResponse(ResBody.success(retArray, pages).toString());
             }
         } else {
             String mime = selectMime(uri.substring(uri.lastIndexOf('.') + 1));
