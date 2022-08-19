@@ -279,10 +279,9 @@ public class PluginMain extends Plugin {
      */
     @Override
     public String getDescription() {
-        String template = "<html><body>%s</body></html>";
-        return String.format(template, "这是一个File-Engine远程搜索插件，通过这个插件，你可以通过浏览器搜索本地文件，并进行下载。\n" +
-                "<a target=\"_blank\" href=\"https://icons8.com/icon/yUvFSXKGhJca/云访问\">云访问</a> " +
-                "icon by <a target=\"_blank\" href=\"https://icons8.com\">Icons8</a>");
+        return "这是一个File-Engine远程搜索插件，通过这个插件，你可以通过浏览器搜索本地文件，并进行下载。\n" +
+                "图标来自： https://icons8.com/icon/yUvFSXKGhJca/云访问  " +
+                "icon by https://icons8.com";
     }
 
     /**
