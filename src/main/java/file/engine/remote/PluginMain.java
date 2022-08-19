@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -247,7 +248,7 @@ public class PluginMain extends Plugin {
      */
     @Override
     public ImageIcon getPluginIcon() {
-        return null;
+        return new ImageIcon(Objects.requireNonNull(PluginMain.class.getResource("/remote.png")));
     }
 
     /**
@@ -278,7 +279,8 @@ public class PluginMain extends Plugin {
      */
     @Override
     public String getDescription() {
-        return "这是一个File-Engine远程搜索插件，通过这个插件，你可以通过浏览器搜索本地文件，并进行下载。";
+        return "这是一个File-Engine远程搜索插件，通过这个插件，你可以通过浏览器搜索本地文件，并进行下载。\n" +
+                "<a target=\"_blank\" href=\"https://icons8.com/icon/yUvFSXKGhJca/云访问\">云访问</a> icon by <a target=\"_blank\" href=\"https://icons8.com\">Icons8</a>";
     }
 
     /**
