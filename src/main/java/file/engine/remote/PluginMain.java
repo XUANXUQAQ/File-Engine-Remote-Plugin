@@ -258,7 +258,7 @@ public class PluginMain extends Plugin {
      */
     @Override
     public String getOfficialSite() {
-        return "";
+        return "https://github.com/XUANXUQAQ/File-Engine-Remote-Plugin";
     }
 
     /**
