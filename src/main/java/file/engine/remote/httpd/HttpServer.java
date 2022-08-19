@@ -3,10 +3,9 @@ package file.engine.remote.httpd;
 import fi.iki.elonen.NanoHTTPD;
 import lombok.SneakyThrows;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
@@ -181,56 +180,114 @@ public class HttpServer extends NanoHTTPD {
     public Response serve(IHTTPSession session) {
         Method method = session.getMethod();
         String uri = session.getUri();
+        if (isPreflightRequest(session)) {
+            return responseCORS(NanoHTTPD.newFixedLengthResponse(""));
+        }
         if (Method.POST.equals(method) && "/search".equals(uri)) {
-            Map<String, List<String>> parameters = session.getParameters();
-            List<String> inputTextList = parameters.get("inputText");
-            if (!inputTextList.isEmpty()) {
-                String inputText = inputTextList.get(0);
-                if (inputText.length() < 300) {
-                    setSearchInfo(inputText);
-                    searchResults = null;
-                    isSearchInfoSet = true;
-                    final long startWaitingTime = System.currentTimeMillis();
-                    while (searchResults == null && System.currentTimeMillis() - startWaitingTime < 3000)
-                        Thread.onSpinWait();
-                    if (searchResults != null) {
-                        return NanoHTTPD.newFixedLengthResponse(ResBody.success(null, 0).toString());
-                    } else {
-                        return NanoHTTPD.newFixedLengthResponse(ResBody.error("waiting for search results too long").toString());
-                    }
-                }
-            }
+            Response responseCORS = handleSearch(session);
+            if (responseCORS != null) return responseCORS;
         } else if (Method.GET.equals(method) && "/results".equals(uri)) {
-            // 获取结果
-            Map<String, List<String>> parameters = session.getParameters();
-            List<String> pageNumList = parameters.get("pageNum");
-            List<String> pageSizeList = parameters.get("pageSize");
-            if (!pageNumList.isEmpty() && !pageSizeList.isEmpty()) {
-                final int pageNum = Integer.parseInt(pageNumList.get(0));
-                final int pageSize = Integer.parseInt(pageSizeList.get(0));
-                ArrayList<String> results = new ArrayList<>(searchResults);
-                ArrayList<String> retArray = new ArrayList<>();
-                final int size = results.size();
-                final int pages = (int) Math.ceil((double) size / pageSize);
-                for (int i = (pageNum - 1) * pageSize; i < pageNum * pageSize && i < size; ++i) {
-                    retArray.add(results.get(i));
-                }
-                return NanoHTTPD.newFixedLengthResponse(ResBody.success(retArray, pages).toString());
-            }
+            Response retArray = handleShowResults(session);
+            if (retArray != null) return retArray;
+        } else if (Method.GET.equals(method) && "/download".equals(uri)) {
+            Response OK = handleDownload(session);
+            if (OK != null) return OK;
         } else {
-            String mime = selectMime(uri.substring(uri.lastIndexOf('.') + 1));
-            StringBuilder res = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(HttpServer.class.getResourceAsStream(uri))))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    res.append(line);
-                }
-                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, mime, res.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            Response OK = handleResources(uri);
+            if (OK != null) return OK;
         }
         return NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString());
+    }
+
+    private Response handleResources(String uri) {
+        String mime = selectMime(uri.substring(uri.lastIndexOf('.') + 1));
+        StringBuilder res = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(HttpServer.class.getResourceAsStream(uri))))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                res.append(line);
+            }
+            return NanoHTTPD.newFixedLengthResponse(Response.Status.OK, mime, res.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private Response handleDownload(IHTTPSession session) throws IOException {
+        Map<String, List<String>> parameters = session.getParameters();
+        List<String> filePathList = parameters.get("filePath");
+        if (filePathList != null && !filePathList.isEmpty()) {
+            String filePath = filePathList.get(0);
+            Path path = Path.of(filePath);
+            if (Files.exists(path)) {
+                long length = Files.size(path);
+                BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(filePath));
+                return responseCORS(NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/octet-stream", inputStream, length));
+            }
+        }
+        return null;
+    }
+
+    private Response handleShowResults(IHTTPSession session) {
+        // 获取结果
+        Map<String, List<String>> parameters = session.getParameters();
+        List<String> pageNumList = parameters.get("pageNum");
+        List<String> pageSizeList = parameters.get("pageSize");
+        if (!pageNumList.isEmpty() && !pageSizeList.isEmpty()) {
+            final int pageNum = Integer.parseInt(pageNumList.get(0));
+            final int pageSize = Integer.parseInt(pageSizeList.get(0));
+            ArrayList<String> results = new ArrayList<>(searchResults);
+            ArrayList<String> retArray = new ArrayList<>();
+            final int size = results.size();
+            final int pages = (int) Math.ceil((double) size / pageSize);
+            for (int i = (pageNum - 1) * pageSize; i < pageNum * pageSize && i < size; ++i) {
+                retArray.add(results.get(i));
+            }
+            return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(retArray, pages).toString()));
+        }
+        return null;
+    }
+
+    private Response handleSearch(IHTTPSession session) {
+        Map<String, List<String>> parameters = session.getParameters();
+        List<String> inputTextList = parameters.get("inputText");
+        if (inputTextList != null && !inputTextList.isEmpty()) {
+            String inputText = inputTextList.get(0);
+            if (inputText.length() < 300 && !inputText.isEmpty()) {
+                setSearchInfo(inputText);
+                searchResults = null;
+                isSearchInfoSet = true;
+                final long startWaitingTime = System.currentTimeMillis();
+                while (searchResults == null && System.currentTimeMillis() - startWaitingTime < 3000)
+                    Thread.onSpinWait();
+                if (searchResults != null) {
+                    return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(null, 0).toString()));
+                } else {
+                    return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.error("waiting for search results too long").toString()));
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 向响应包中添加CORS包头数据
+     */
+    private Response responseCORS(Response resp) {
+        resp.addHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
+        resp.addHeader("Access-Control-Allow-Headers", "*");
+        resp.addHeader("Access-Control-Allow-Origin", "*");
+        resp.addHeader("Access-Control-Max-Age", "0");
+        return resp;
+    }
+
+    private static boolean isPreflightRequest(IHTTPSession session) {
+        Map<String, String> headers = session.getHeaders();
+        return Method.OPTIONS.equals(session.getMethod())
+                && headers.containsKey("origin")
+                && headers.containsKey("access-control-request-method")
+                && headers.containsKey("access-control-request-headers");
     }
 
     /**

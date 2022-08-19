@@ -122,7 +122,7 @@ public class PluginMain extends Plugin {
                                     searchInfo[0],
                                     searchInfo[1],
                                     searchInfo[2]);
-                            displayMessage("提示", "已经向File-Engine发送一个搜索请求");
+                            displayMessage("提示", "File-Engine接收到一个搜索请求");
                         }
                         TimeUnit.MILLISECONDS.sleep(100);
                     }
