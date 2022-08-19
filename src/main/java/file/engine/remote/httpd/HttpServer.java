@@ -163,7 +163,7 @@ public class HttpServer extends NanoHTTPD {
         suffixMimeMap.put("movie", "video/x-sgi-movie");
         suffixMimeMap.put("ice", "x-conference/x-cooltalk");
         suffixMimeMap.put("form", "application/x-www-form-urlencoded");
-        suffixMimeMap.put("svg", "text/xml");
+        suffixMimeMap.put("svg", "image/svg+xml");
         suffixMimeMap.put("ico", "image/x-icon");
     }
 
