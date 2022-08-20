@@ -12,11 +12,13 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class PluginMain extends Plugin {
 
@@ -107,6 +109,16 @@ public class PluginMain extends Plugin {
     @Override
     public void loadPlugin(Map<String, Object> configs) throws RuntimeException {
         try {
+            HashMap<String, Class<?>> startSearchEventFields = new HashMap<>();
+            startSearchEventFields.put("searchCase", Supplier.class);
+            startSearchEventFields.put("searchText", Supplier.class);
+            startSearchEventFields.put("keywords", Supplier.class);
+            checkEvent("file.engine.event.handler.impl.database.StartSearchEvent", startSearchEventFields);
+
+            HashMap<String, Class<?>> searchDoneEventFields = new HashMap<>();
+            searchDoneEventFields.put("searchResults", ConcurrentLinkedQueue.class);
+            checkEvent("file.engine.event.handler.impl.database.SearchDoneEvent", searchDoneEventFields);
+
             backgroundColor = new Color((Integer) configs.get("defaultBackground"));
             labelChosenColor = new Color((Integer) configs.get("labelColor"));
             labelDefaultFontColor = new Color((Integer) configs.get("fontColor"));
