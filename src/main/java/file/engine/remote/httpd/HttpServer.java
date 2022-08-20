@@ -1,6 +1,8 @@
 package file.engine.remote.httpd;
 
 import fi.iki.elonen.NanoHTTPD;
+import file.engine.remote.utils.configs.ConfigsUtil;
+import file.engine.remote.utils.zip.FileZipUtil;
 import lombok.SneakyThrows;
 
 import java.io.*;
@@ -221,13 +223,28 @@ public class HttpServer extends NanoHTTPD {
         if (filePathList != null && !filePathList.isEmpty()) {
             String filePath = filePathList.get(0);
             Path path = Path.of(filePath);
-            if (Files.exists(path) && Files.isRegularFile(path)) {
-                long length = Files.size(path);
-                BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(filePath));
-                return responseCORS(NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/octet-stream", inputStream, length));
+            if (Files.exists(path)) {
+                if (Files.isRegularFile(path)) {
+                    return returnFileStream(path);
+                } else {
+                    String zipFileName = path.getFileName().toString() + ".zip";
+                    try {
+                        FileZipUtil.fileToZip(filePath, Path.of(ConfigsUtil.TMP_PATH, zipFileName).toString());
+                        Path zipFilePath = Path.of(zipFileName);
+                        return returnFileStream(zipFilePath);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
         return null;
+    }
+
+    private Response returnFileStream(Path filePath) throws IOException {
+        long length = Files.size(filePath);
+        BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(filePath.toFile()));
+        return responseCORS(NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/octet-stream", inputStream, length));
     }
 
     private Response handleShowResults(IHTTPSession session) {

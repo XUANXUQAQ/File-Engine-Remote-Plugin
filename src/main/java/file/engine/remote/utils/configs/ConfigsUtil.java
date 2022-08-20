@@ -13,6 +13,7 @@ import java.util.Map;
 public class ConfigsUtil {
     public static final String CONFIGURATION_PATH = "plugins\\Plugin configuration files\\Remote";
     public static final String CONFIGURATION_FILE = Path.of(CONFIGURATION_PATH, "settings.json").toString();
+    public static final String TMP_PATH = Path.of(CONFIGURATION_PATH, "tmp").toString();
     private static final int DEFAULT_PORT = 23333;
     private Map<String, Object> configMap;
     private static volatile ConfigsUtil instance;
@@ -47,6 +48,14 @@ public class ConfigsUtil {
                 throw new RuntimeException("mkdir failed..." + CONFIGURATION_PATH);
             }
         }
+        File tmpFile = new File(TMP_PATH);
+        if (!tmpFile.exists()) {
+            boolean mkdirs = tmpFile.mkdirs();
+            if (!mkdirs) {
+                throw new RuntimeException("mkdir tmp failed..." + TMP_PATH);
+            }
+        }
+        deleteDir(tmpFile);
         File configFile = new File(CONFIGURATION_FILE);
         if (!configFile.exists()) {
             boolean newFile = configFile.createNewFile();
@@ -62,6 +71,31 @@ public class ConfigsUtil {
         } else {
             //读取配置
             readConfiguration(path);
+        }
+    }
+
+    /**
+     * 清空一个目录，不删除目录本身
+     *
+     * @param file 目录文件
+     */
+    private static void deleteDir(File file) {
+        if (!file.exists()) {
+            return;
+        }
+        File[] content = file.listFiles();//取得当前目录下所有文件和文件夹
+        if (content == null || content.length == 0) {
+            return;
+        }
+        for (File temp : content) {
+            //直接删除文件
+            if (temp.isDirectory()) {//判断是否是目录
+                deleteDir(temp);//递归调用，删除目录里的内容
+            }
+            //删除空目录
+            if (!temp.delete()) {
+                System.err.println("Failed to delete " + temp.getAbsolutePath());
+            }
         }
     }
 }
