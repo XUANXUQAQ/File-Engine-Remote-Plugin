@@ -229,9 +229,11 @@ public class HttpServer extends NanoHTTPD {
                 } else {
                     String zipFileName = path.getFileName().toString() + ".zip";
                     try {
-                        FileZipUtil.fileToZip(filePath, Path.of(ConfigsUtil.TMP_PATH, zipFileName).toString());
-                        Path zipFilePath = Path.of(zipFileName);
-                        return returnFileStream(zipFilePath);
+                        if (FileZipUtil.checkFilesSize(filePath, 100 * 1024 * 1024)) {
+                            FileZipUtil.fileToZip(filePath, Path.of(ConfigsUtil.TMP_PATH, zipFileName).toString());
+                            Path zipFilePath = Path.of(zipFileName);
+                            return returnFileStream(zipFilePath);
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

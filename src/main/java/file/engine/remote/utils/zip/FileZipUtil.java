@@ -1,12 +1,48 @@
 package file.engine.remote.utils.zip;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.util.LinkedList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public final class FileZipUtil {
 
     private FileZipUtil() {
+    }
+
+    /**
+     * 检查文件夹中文件的大小是否超过限制
+     * @param dir 文件夹
+     * @param maxSizeInBytes 最大允许大小
+     * @return true如果文件夹中文件的大小未超过最大允许的大小
+     * @throws IOException exception
+     */
+    public static boolean checkFilesSize(String dir, long maxSizeInBytes) throws IOException {
+        LinkedList<File> paths = new LinkedList<>();
+        paths.add(new File(dir));
+        long totalBytes = 0;
+        do {
+            File poll = paths.poll();
+            if (poll.isDirectory()) {
+                File[] files = poll.listFiles();
+                if (files == null || files.length == 0) {
+                    continue;
+                }
+                for (File file : files) {
+                    totalBytes += Files.size(file.toPath());
+                    if (totalBytes > maxSizeInBytes) {
+                        return false;
+                    }
+                }
+            } else {
+                totalBytes += Files.size(poll.toPath());
+                if (totalBytes > maxSizeInBytes) {
+                    return false;
+                }
+            }
+        } while (!paths.isEmpty());
+        return true;
     }
 
     /**
