@@ -230,8 +230,8 @@ public class HttpServer extends NanoHTTPD {
                     String zipFileName = path.getFileName().toString() + ".zip";
                     try {
                         if (FileZipUtil.checkFilesSize(filePath, 100 * 1024 * 1024)) {
-                            FileZipUtil.fileToZip(filePath, Path.of(ConfigsUtil.TMP_PATH, zipFileName).toString());
-                            Path zipFilePath = Path.of(zipFileName);
+                            Path zipFilePath = Path.of(ConfigsUtil.TMP_PATH, zipFileName);
+                            FileZipUtil.fileToZip(filePath, zipFilePath.toString());
                             return returnFileStream(zipFilePath);
                         }
                     } catch (Exception e) {
