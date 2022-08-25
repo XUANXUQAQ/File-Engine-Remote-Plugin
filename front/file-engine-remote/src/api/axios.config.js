@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建axios实例，最多60秒的请求时延
 const http = axios.create({
-  timeout: 1000 * 60,
+  timeout: Number.MAX_SAFE_INTEGER,
 });
 
 /**
