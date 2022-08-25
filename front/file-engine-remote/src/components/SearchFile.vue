@@ -108,14 +108,24 @@ export default {
       searchApi
         .download(fileFullPath)
         .then((res) => {
-          let url = window.URL.createObjectURL(new Blob([res]));
-          let link = document.createElement("a");
-          link.style.display = "none";
-          link.href = url;
-          link.setAttribute("download", fileName); // 自定义下载文件名
-          console.log("fileName", fileName);
-          document.body.appendChild(link);
-          link.click();
+          const fileBlob = new Blob([res]);
+          fileBlob.text().then((text) => {
+            //判断是否无后缀名，可能为文件夹压缩包
+            if (fileName.indexOf(".") === -1) {
+              const fileHeader = String.fromCharCode(0x50, 0x4b, 0x03, 0x04);
+              // 判断是否为zip格式
+              if (text.startsWith(fileHeader)) {
+                fileName += ".zip";
+              }
+            }
+            const url = window.URL.createObjectURL(fileBlob);
+            const link = document.createElement("a");
+            link.style.display = "none";
+            link.href = url;
+            link.setAttribute("download", fileName); // 自定义下载文件名
+            document.body.appendChild(link);
+            link.click();
+          });
         })
         .catch((err) => {
           console.error(err);

@@ -77,7 +77,7 @@ public final class FileZipUtil {
     private static void fileToZip(ZipOutputStream zos, File sourceFile, String path) throws Exception {
         //如果是文件夹只创建zip实体即可，如果是文件，创建zip实体后还要读取文件内容并写入
         if (sourceFile.isDirectory()) {
-            path = path + sourceFile.getName() + "/";
+            path = path + sourceFile.getName() + File.separator;
             ZipEntry zipEntry = new ZipEntry(path);
             zos.putNextEntry(zipEntry);
             File[] files = sourceFile.listFiles();
