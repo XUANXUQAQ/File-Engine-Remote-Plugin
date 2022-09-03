@@ -50,8 +50,9 @@
         <div>
           <el-button
             type="success"
-            @click="downloadFile(each.fileName, each.filePath)"
-            >下载</el-button
+            :disabled="each.downloading"
+            @click="downloadFile(each)"
+            >{{ each.downloading ? "下载中" : "下载" }}</el-button
           >
         </div>
       </div>
@@ -103,11 +104,15 @@ export default {
     /**
      * 下载文件
      */
-    downloadFile(fileName, filePath) {
+    downloadFile(fileObj) {
+      let fileName = fileObj.fileName;
+      const filePath = fileObj.filePath;
+      fileObj.downloading = true;
       const fileFullPath = filePath + "\\" + fileName;
       searchApi
         .download(fileFullPath)
         .then((res) => {
+          fileObj.downloading = false;
           const fileBlob = new Blob([res]);
           fileBlob.text().then((text) => {
             //判断是否无后缀名，可能为文件夹压缩包
@@ -128,6 +133,7 @@ export default {
           });
         })
         .catch((err) => {
+          fileObj.downloading = false;
           console.error(err);
         });
     },
@@ -169,6 +175,7 @@ export default {
             this.searchResultsList.push({
               fileName: self.getFileName(eachFilePath),
               filePath: self.getParentPath(eachFilePath),
+              downloading: false,
             });
           });
           self.totalPages = res.pages;
