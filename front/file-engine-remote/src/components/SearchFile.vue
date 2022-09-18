@@ -49,10 +49,9 @@
         </div>
         <div>
           <el-button
-            type="success"
-            :disabled="each.downloading"
-            @click="downloadFile(each)"
-            >{{ each.downloading ? "下载中" : "下载" }}</el-button
+            :type="each.downloading ? 'danger' : 'success'"
+            @click="each.downloading ? cancelDownload(each) : downloadFile(each)"
+            >{{ each.downloading ? "取消" : "下载" }}</el-button
           >
         </div>
       </div>
@@ -101,6 +100,10 @@ export default {
     },
   },
   methods: {
+    cancelDownload(fileObj) {
+      fileObj.abortController.abort();
+      fileObj.abortController = new AbortController();
+    },
     /**
      * 下载文件
      */
@@ -110,7 +113,7 @@ export default {
       fileObj.downloading = true;
       const fileFullPath = filePath + "\\" + fileName;
       searchApi
-        .download(fileFullPath)
+        .download(fileFullPath, fileObj.abortController)
         .then((res) => {
           fileObj.downloading = false;
           const fileBlob = new Blob([res]);
@@ -176,6 +179,7 @@ export default {
               fileName: self.getFileName(eachFilePath),
               filePath: self.getParentPath(eachFilePath),
               downloading: false,
+              abortController: new AbortController(),
             });
           });
           self.totalPages = res.pages;

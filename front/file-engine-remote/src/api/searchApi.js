@@ -20,9 +20,10 @@ const searchApi = {
             }
         });
     },
-    download(filePath) {
+    download(filePath, abortController) {
         const url = `${baseUrl}/download`;
         return http.get(url, {
+            signal: abortController.signal,
             params: {
                 filePath
             },
