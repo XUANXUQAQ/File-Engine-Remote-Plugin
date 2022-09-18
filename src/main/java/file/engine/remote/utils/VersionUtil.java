@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class VersionUtil {
 
-    public final static double CURRENT_VERSION = 1.1;
+    public final static double CURRENT_VERSION = 1.2;
 
     private static String updateURL;
 
