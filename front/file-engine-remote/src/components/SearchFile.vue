@@ -81,6 +81,7 @@
 <script>
 import searchApi from "@/api/searchApi.js";
 import { useLoading } from "vue-loading-overlay";
+import { ElMessage } from 'element-plus'
 
 export default {
   data() {
@@ -138,6 +139,11 @@ export default {
         .catch((err) => {
           fileObj.downloading = false;
           console.error(err);
+          ElMessage({
+            showClose: true,
+            message: '文件太大或请求失败',
+            type: 'error',
+          })
         });
     },
     /**

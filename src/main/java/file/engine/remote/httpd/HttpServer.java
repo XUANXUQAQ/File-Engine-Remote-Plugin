@@ -1,6 +1,7 @@
 package file.engine.remote.httpd;
 
 import fi.iki.elonen.NanoHTTPD;
+import file.engine.remote.utils.CORSUtil;
 import file.engine.remote.utils.configs.ConfigsUtil;
 import file.engine.remote.utils.zip.FileZipUtil;
 import lombok.SneakyThrows;
@@ -187,19 +188,14 @@ public class HttpServer extends NanoHTTPD {
             return responseCORS(NanoHTTPD.newFixedLengthResponse(""));
         }
         if (Method.POST.equals(method) && "/search".equals(uri)) {
-            Response responseCORS = handleSearch(session);
-            if (responseCORS != null) return responseCORS;
+            return responseCORS(handleSearch(session));
         } else if (Method.GET.equals(method) && "/results".equals(uri)) {
-            Response retArray = handleShowResults(session);
-            if (retArray != null) return retArray;
+            return responseCORS(handleShowResults(session));
         } else if (Method.GET.equals(method) && "/download".equals(uri)) {
-            Response OK = handleDownload(session);
-            if (OK != null) return OK;
+            return responseCORS(handleDownload(session));
         } else {
-            Response OK = handleResources(uri);
-            if (OK != null) return OK;
+            return responseCORS(handleResources(uri));
         }
-        return NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString());
     }
 
     private Response handleResources(String uri) {
@@ -214,7 +210,7 @@ public class HttpServer extends NanoHTTPD {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString());
     }
 
     private Response handleDownload(IHTTPSession session) throws IOException {
@@ -233,6 +229,10 @@ public class HttpServer extends NanoHTTPD {
                             Path zipFilePath = Path.of(ConfigsUtil.TMP_PATH, zipFileName);
                             FileZipUtil.fileToZip(filePath, zipFilePath.toString());
                             return returnFileStream(zipFilePath);
+                        } else {
+                            return NanoHTTPD.newFixedLengthResponse(Response.Status.SERVICE_UNAVAILABLE,
+                                    NanoHTTPD.MIME_HTML,
+                                    ResBody.error("Directory too large").toString());
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -240,7 +240,7 @@ public class HttpServer extends NanoHTTPD {
                 }
             }
         }
-        return null;
+        return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_HTML, ResBody.error("error request").toString());
     }
 
     private Response returnFileStream(Path filePath) throws IOException {
@@ -266,7 +266,7 @@ public class HttpServer extends NanoHTTPD {
             }
             return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(retArray, pages).toString()));
         }
-        return null;
+        return NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString());
     }
 
     private Response handleSearch(IHTTPSession session) {
@@ -288,17 +288,19 @@ public class HttpServer extends NanoHTTPD {
                 }
             }
         }
-        return null;
+        return NanoHTTPD.newFixedLengthResponse(ResBody.error("parameters error").toString());
     }
 
     /**
      * 向响应包中添加CORS包头数据
      */
     private Response responseCORS(Response resp) {
-        resp.addHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
-        resp.addHeader("Access-Control-Allow-Headers", "*");
-        resp.addHeader("Access-Control-Allow-Origin", "*");
-        resp.addHeader("Access-Control-Max-Age", "0");
+        if (CORSUtil.isCorsEnabled()) {
+            resp.addHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS");
+            resp.addHeader("Access-Control-Allow-Headers", "*");
+            resp.addHeader("Access-Control-Allow-Origin", "*");
+            resp.addHeader("Access-Control-Max-Age", "0");
+        }
         return resp;
     }
 

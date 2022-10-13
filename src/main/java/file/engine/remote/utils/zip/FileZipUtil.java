@@ -30,9 +30,13 @@ public final class FileZipUtil {
                     continue;
                 }
                 for (File file : files) {
-                    totalBytes += Files.size(file.toPath());
-                    if (totalBytes > maxSizeInBytes) {
-                        return false;
+                    if (file.isFile()) {
+                        totalBytes += Files.size(file.toPath());
+                        if (totalBytes > maxSizeInBytes) {
+                            return false;
+                        }
+                    } else {
+                        paths.add(file);
                     }
                 }
             } else {
