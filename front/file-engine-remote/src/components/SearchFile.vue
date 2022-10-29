@@ -9,6 +9,7 @@
           placeholder="搜索，不同关键字用;(英文分号)隔开"
           size="large"
           maxlength="300"
+          @keyup.enter="search"
         />
         <div style="margin: 0 1%"></div>
         <div style="display: flex; align-items: center">
