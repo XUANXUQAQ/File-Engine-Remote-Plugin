@@ -20,16 +20,24 @@ const searchApi = {
             }
         });
     },
-    download(filePath, abortController) {
-        const url = `${baseUrl}/download`;
-        return http.get(url, {
-            signal: abortController.signal,
-            params: {
-                filePath
-            },
-            responseType: 'blob'
-        })
+    download(fileName, filePath, isDir) {
+        let downloadFileName = fileName;
+        if (isDir) {
+            downloadFileName += ".zip";
+        }
+        const url = `${baseUrl}/${downloadFileName}?filePath=${filePath}`;
+        window.location.href = url;
     }
+    // download(filePath, abortController) {
+    //     const url = `${baseUrl}/download`;
+    //     return http.get(url, {
+    //         signal: abortController.signal,
+    //         params: {
+    //             filePath
+    //         },
+    //         responseType: 'blob'
+    //     })
+    // }
 }
 
 export default searchApi;

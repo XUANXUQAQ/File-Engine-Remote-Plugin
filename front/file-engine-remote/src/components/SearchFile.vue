@@ -82,7 +82,7 @@
 <script>
 import searchApi from "@/api/searchApi.js";
 import { useLoading } from "vue-loading-overlay";
-import { ElMessage } from 'element-plus'
+// import { ElMessage } from 'element-plus';
 
 export default {
   data() {
@@ -112,40 +112,41 @@ export default {
     downloadFile(fileObj) {
       let fileName = fileObj.fileName;
       const filePath = fileObj.filePath;
-      fileObj.downloading = true;
+      // fileObj.downloading = true;
       const fileFullPath = filePath + "\\" + fileName;
-      searchApi
-        .download(fileFullPath, fileObj.abortController)
-        .then((res) => {
-          fileObj.downloading = false;
-          const fileBlob = new Blob([res]);
-          fileBlob.text().then((text) => {
-            //判断是否无后缀名，可能为文件夹压缩包
-            if (fileName.indexOf(".") === -1) {
-              const fileHeader = String.fromCharCode(0x50, 0x4b, 0x03, 0x04);
-              // 判断是否为zip格式
-              if (text.startsWith(fileHeader)) {
-                fileName += ".zip";
-              }
-            }
-            const url = window.URL.createObjectURL(fileBlob);
-            const link = document.createElement("a");
-            link.style.display = "none";
-            link.href = url;
-            link.setAttribute("download", fileName); // 自定义下载文件名
-            document.body.appendChild(link);
-            link.click();
-          });
-        })
-        .catch((err) => {
-          fileObj.downloading = false;
-          console.error(err);
-          ElMessage({
-            showClose: true,
-            message: '文件太大或请求失败',
-            type: 'error',
-          })
-        });
+      searchApi.download(fileName, fileFullPath, fileObj.isDir);
+      // searchApi
+      //   .download(fileFullPath, fileObj.abortController)
+      //   .then((res) => {
+      //     fileObj.downloading = false;
+      //     const fileBlob = new Blob([res]);
+      //     fileBlob.text().then((text) => {
+      //       //判断是否无后缀名，可能为文件夹压缩包
+      //       if (fileName.indexOf(".") === -1) {
+      //         const fileHeader = String.fromCharCode(0x50, 0x4b, 0x03, 0x04);
+      //         // 判断是否为zip格式
+      //         if (text.startsWith(fileHeader)) {
+      //           fileName += ".zip";
+      //         }
+      //       }
+      //       const url = window.URL.createObjectURL(fileBlob);
+      //       const link = document.createElement("a");
+      //       link.style.display = "none";
+      //       link.href = url;
+      //       link.setAttribute("download", fileName); // 自定义下载文件名
+      //       document.body.appendChild(link);
+      //       link.click();
+      //     });
+      //   })
+      //   .catch((err) => {
+      //     fileObj.downloading = false;
+      //     console.error(err);
+      //     ElMessage({
+      //       showClose: true,
+      //       message: '文件太大或请求失败',
+      //       type: 'error',
+      //     })
+      //   });
     },
     /**
      * 通过用户输入和选择过滤条件生成搜索字符串
@@ -183,10 +184,11 @@ export default {
         .then((res) => {
           res.data.forEach((eachFilePath) => {
             this.searchResultsList.push({
-              fileName: self.getFileName(eachFilePath),
-              filePath: self.getParentPath(eachFilePath),
+              fileName: self.getFileName(eachFilePath.filePath),
+              filePath: self.getParentPath(eachFilePath.filePath),
               downloading: false,
               abortController: new AbortController(),
+              isDir: eachFilePath.isDir
             });
           });
           self.totalPages = res.pages;

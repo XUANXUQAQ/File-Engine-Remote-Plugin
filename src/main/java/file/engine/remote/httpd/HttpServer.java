@@ -191,11 +191,24 @@ public class HttpServer extends NanoHTTPD {
             return responseCORS(handleSearch(session));
         } else if (Method.GET.equals(method) && "/results".equals(uri)) {
             return responseCORS(handleShowResults(session));
-        } else if (Method.GET.equals(method) && "/download".equals(uri)) {
-            return responseCORS(handleDownload(session));
-        } else {
+        } else if (Method.GET.equals(method) && hasResource(uri)) {
             return responseCORS(handleResources(uri));
+        } else if (Method.GET.equals(method)) {
+            return responseCORS(handleDownload(session));
         }
+        return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString()));
+    }
+
+    private boolean hasResource(String uri) {
+        try (var stream = HttpServer.class.getResourceAsStream(uri)) {
+            if (stream == null) {
+                return false;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     private Response handleResources(String uri) {
@@ -258,13 +271,17 @@ public class HttpServer extends NanoHTTPD {
             final int pageNum = Integer.parseInt(pageNumList.get(0));
             final int pageSize = Integer.parseInt(pageSizeList.get(0));
             ArrayList<String> results = new ArrayList<>(searchResults);
-            ArrayList<String> retArray = new ArrayList<>();
+            ArrayList<HashMap<String, Object>> ret = new ArrayList<>();
             final int size = results.size();
             final int pages = (int) Math.ceil((double) size / pageSize);
             for (int i = (pageNum - 1) * pageSize; i < pageNum * pageSize && i < size; ++i) {
-                retArray.add(results.get(i));
+                String filePath = results.get(i);
+                HashMap<String, Object> tmpMap = new HashMap<>();
+                tmpMap.put("filePath", filePath);
+                tmpMap.put("isDir", Files.isDirectory(Path.of(filePath)));
+                ret.add(tmpMap);
             }
-            return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(retArray, pages).toString()));
+            return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(ret, pages).toString()));
         }
         return NanoHTTPD.newFixedLengthResponse(ResBody.error("error request").toString());
     }
