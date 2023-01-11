@@ -154,7 +154,7 @@ export default {
     generateSearchStr() {
       if (this.searchCaseList.length !== 0) {
         const searchCaseStr = this.searchCaseList.join(";");
-        return this.input + ":" + searchCaseStr;
+        return this.input + "|" + searchCaseStr;
       } else {
         return this.input;
       }

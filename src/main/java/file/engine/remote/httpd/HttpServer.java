@@ -370,34 +370,29 @@ public class HttpServer extends NanoHTTPD {
     /**
      * 设置搜索的关键字
      *
-     * @param inputText 用户输入
+     * @param searchBarText 用户输入
      */
-    private void setSearchInfo(String inputText) {
-        final int i = inputText.lastIndexOf(':');
-        if (i == -1) {
-            searchText = inputText;
-            searchCase = null;
-        } else {
-            if (inputText.length() - 1 > i) {
-                final char c = inputText.charAt(i + 1);
-                // 如 test;/C:/  test;/C:\  test;/D:  test;/D:;  则判断为搜索磁盘内的文件
-                if (c == '/' || c == File.separatorChar || c == ' ' || c == ';') {
-                    searchText = inputText;
+    private void setSearchInfo(String searchBarText) {
+        if (!searchBarText.isEmpty()) {
+            final int i = searchBarText.lastIndexOf('|');
+            if (i == -1) {
+                searchText = searchBarText;
+                searchCase = null;
+            } else {
+                searchText = searchBarText.substring(0, i);
+                var searchCaseStr = searchBarText.substring(i + 1);
+                if (searchCaseStr.isEmpty()) {
                     searchCase = null;
                 } else {
-                    searchText = inputText.substring(0, i);
-                    String[] tmpSearchCase = semicolon.split(inputText.substring(i + 1));
+                    String[] tmpSearchCase = semicolon.split(searchCaseStr);
                     searchCase = new String[tmpSearchCase.length];
                     for (int j = 0; j < tmpSearchCase.length; j++) {
                         searchCase[j] = tmpSearchCase[j].trim();
                     }
                 }
-            } else {
-                searchText = inputText;
-                searchCase = null;
             }
+            keywords = semicolon.split(searchText);
         }
-        keywords = semicolon.split(searchText);
     }
 
     /**
