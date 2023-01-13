@@ -84,7 +84,7 @@ public class ConfigsUtil {
             return;
         }
         File[] content = file.listFiles();//取得当前目录下所有文件和文件夹
-        if (content == null || content.length == 0) {
+        if (content == null) {
             return;
         }
         for (File temp : content) {

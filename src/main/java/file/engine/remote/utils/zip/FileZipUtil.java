@@ -85,7 +85,7 @@ public final class FileZipUtil {
             ZipEntry zipEntry = new ZipEntry(path);
             zos.putNextEntry(zipEntry);
             File[] files = sourceFile.listFiles();
-            if (null != files && files.length != 0) {
+            if (null != files) {
                 for (File file : files) {
                     fileToZip(zos, file, path);
                 }
