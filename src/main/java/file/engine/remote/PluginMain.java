@@ -1,5 +1,6 @@
 package file.engine.remote;
 
+import file.engine.remote.events.SendSearchEvent;
 import file.engine.remote.httpd.HttpServer;
 import file.engine.remote.utils.ColorUtils;
 import file.engine.remote.utils.OpenUtil;
@@ -16,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -29,7 +29,6 @@ public class PluginMain extends Plugin {
     private HttpServer httpServer;
     private final String commandSet = ">set";
     private final String commandOpen = ">open";
-    private boolean isNotExit = true;
 
     /**
      * Deprecated
@@ -125,38 +124,17 @@ public class PluginMain extends Plugin {
             labelChosenFontColor = new Color((Integer) configs.get("fontColorWithCoverage"));
             ConfigsUtil configsUtil = ConfigsUtil.getInstance();
             httpServer = new HttpServer(configsUtil.getPort());
-            new Thread(() -> {
-                try {
-                    while (isNotExit) {
-                        if (httpServer.isSearchInfoSet()) {
-                            httpServer.resetSearchInfo();
-                            Object[] searchInfo = httpServer.getSearchInfo();
-                            sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
-                                    searchInfo[0],
-                                    searchInfo[1],
-                                    searchInfo[2]);
-                            displayMessage("提示", "File-Engine接收到一个搜索请求");
-                        }
-                        TimeUnit.MILLISECONDS.sleep(100);
-                    }
-                } catch (InterruptedException ignored) {
-                }
-            }).start();
+            registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
+                Object[] searchInfo = httpServer.getSearchInfo();
+                sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
+                        searchInfo[0],
+                        searchInfo[1],
+                        searchInfo[2]);
+                displayMessage("提示", "File-Engine接收到一个搜索请求");
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Deprecated
-     * 你应该使用loadPlugin(Map)
-     *
-     * @see #loadPlugin(Map)
-     */
-    @Override
-    @Deprecated
-    public void loadPlugin() {
-
     }
 
     /**
@@ -164,7 +142,6 @@ public class PluginMain extends Plugin {
      */
     @Override
     public void unloadPlugin() {
-        isNotExit = false;
         httpServer.stop();
     }
 

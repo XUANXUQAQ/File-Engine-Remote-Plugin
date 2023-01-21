@@ -1,6 +1,8 @@
 package file.engine.remote.httpd;
 
 import fi.iki.elonen.NanoHTTPD;
+import file.engine.remote.Plugin;
+import file.engine.remote.events.SendSearchEvent;
 import file.engine.remote.utils.CORSUtil;
 import file.engine.remote.utils.configs.ConfigsUtil;
 import file.engine.remote.utils.zip.FileZipUtil;
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -18,7 +21,6 @@ public class HttpServer extends NanoHTTPD {
     private String searchText;
     private String[] searchCase;
     private String[] keywords;
-    private volatile boolean isSearchInfoSet = false;
     private volatile ConcurrentLinkedQueue<String> searchResults;
     private static final Pattern semicolon = Pattern.compile(";");
     private static final HashMap<String, String> suffixMimeMap = new HashMap<>();
@@ -294,10 +296,15 @@ public class HttpServer extends NanoHTTPD {
             if (inputText.length() < 300 && !inputText.isEmpty()) {
                 setSearchInfo(inputText);
                 searchResults = null;
-                isSearchInfoSet = true;
+                Plugin.sendEventToFileEngine(new SendSearchEvent());
                 final long startWaitingTime = System.currentTimeMillis();
-                while (searchResults == null && System.currentTimeMillis() - startWaitingTime < MAX_WAIT_TIME)
-                    Thread.onSpinWait();
+                while (searchResults == null && System.currentTimeMillis() - startWaitingTime < MAX_WAIT_TIME) {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 if (searchResults != null) {
                     return responseCORS(NanoHTTPD.newFixedLengthResponse(ResBody.success(null, 0).toString()));
                 } else {
@@ -340,22 +347,6 @@ public class HttpServer extends NanoHTTPD {
         info[1] = (Supplier<String[]>) () -> searchCase;
         info[2] = (Supplier<String[]>) () -> keywords;
         return info;
-    }
-
-    /**
-     * 是否已经成功解析搜索关键字
-     *
-     * @return true如果搜索关键字解析完成，可以发送搜索事件
-     */
-    public boolean isSearchInfoSet() {
-        return this.isSearchInfoSet;
-    }
-
-    /**
-     * 重置搜索关键字解析
-     */
-    public void resetSearchInfo() {
-        this.isSearchInfoSet = false;
     }
 
     /**
