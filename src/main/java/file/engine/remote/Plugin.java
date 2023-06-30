@@ -5,7 +5,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.lang.reflect.Field;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
@@ -17,7 +16,9 @@ public abstract class Plugin {
     private static final ConcurrentLinkedQueue<Object[]> eventQueue = new ConcurrentLinkedQueue<>();
     private static final ConcurrentLinkedQueue<Object[]> replaceEventHandlerQueue = new ConcurrentLinkedQueue<>();
     private static final ConcurrentLinkedQueue<String> restoreReplacedEventQueue = new ConcurrentLinkedQueue<>();
-    private static final int API_VERSION = 6;
+    private static final ConcurrentLinkedQueue<Object[]> addEventListenerQueue = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<String[]> removeEventListenerQueue = new ConcurrentLinkedQueue<>();
+    private static final int API_VERSION = 7;
 
     protected void _clearResultQueue() {
         resultQueue.clear();
@@ -45,6 +46,14 @@ public abstract class Plugin {
 
     protected String _pollFromRestoreQueue() {
         return restoreReplacedEventQueue.poll();
+    }
+
+    protected String[] _pollFromRemoveListenerQueue() {
+        return removeEventListenerQueue.poll();
+    }
+
+    protected Object[] _pollFromEventListenerQueue() {
+        return addEventListenerQueue.poll();
     }
 
     //Interface
@@ -80,8 +89,6 @@ public abstract class Plugin {
 
     public abstract String getAuthor();
 
-    public abstract void setCurrentTheme(int defaultColor, int choseLabelColor, int borderColor);
-
     public abstract void searchBarVisible(String showingMode);
 
     public abstract void configsChanged(Map<String, Object> configs);
@@ -93,7 +100,7 @@ public abstract class Plugin {
     /*---------------------------------------------------------------------------------------------------------*/
 
     /**
-     * 恢复File-Engine的事件处理器
+     * 恢复File-Engine的事件处理器，或者取消注册插件事件
      *
      * @param classFullName 事件类全限定名
      */
@@ -102,7 +109,7 @@ public abstract class Plugin {
     }
 
     /**
-     * 替换File-Engine对应事件的事件处理器
+     * 替换File-Engine对应事件的事件处理器，同时也可以注册插件事件
      *
      * @param classFullName 事件类全限定名
      * @param handler       事件处理器
@@ -112,6 +119,29 @@ public abstract class Plugin {
         objects[0] = classFullName;
         objects[1] = handler;
         replaceEventHandlerQueue.add(objects);
+    }
+
+    /**
+     * 添加事件监听器，类名可以为File-Engine中的事件，也可以是插件自定义事件
+     * @param classFullName 事件类全限定名
+     * @param listenerName 监听器名
+     * @param listener 监听器
+     */
+    public static void registerFileEngineEventListener(String classFullName, String listenerName, BiConsumer<Class<?>, Object> listener) {
+        Object[] objects = new Object[3];
+        objects[0] = classFullName;
+        objects[1] = listenerName;
+        objects[2] = listener;
+        addEventListenerQueue.add(objects);
+    }
+
+    /**
+     * 删除注册的事件监听器
+     * @param classFullName 事件类全限定名
+     * @param listenerName 监听器名
+     */
+    public static void removeFileEngineEventListener(String classFullName, String listenerName) {
+        removeEventListenerQueue.add(new String[]{classFullName, listenerName});
     }
 
     /**
@@ -141,17 +171,7 @@ public abstract class Plugin {
      */
     public static void sendEventToFileEngine(Event event) {
         Class<? extends Event> eventClass = event.getClass();
-        Field[] declaredFields = eventClass.getDeclaredFields();
-        LinkedHashMap<String, Object> paramsMap = new LinkedHashMap<>();
-        try {
-            for (Field declaredField : declaredFields) {
-                declaredField.setAccessible(true);
-                paramsMap.put(declaredField.getType().getName() + ":" + declaredField.getName(), declaredField.get(event));
-            }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        sendEventToFileEngine(eventClass.getName(), event.getBlock(), event.getCallback(), event.getErrorHandler(), paramsMap);
+        sendEventToFileEngine(eventClass.getName(), event.getBlock(), event.getCallback(), event.getErrorHandler(), event, eventClass);
     }
 
     /**
@@ -170,10 +190,13 @@ public abstract class Plugin {
     /**
      * 检查事件是否符合check规则，在使用File-Engine的内置事件时应该先使用该方法检查参数
      * 由于某些版本的事件可能会有细微差别，所以应该先进行检查事件类中的Field，确保兼容性
+     * <p>
+     * 推荐在loadPlugin时就对插件所有要使用的事件进行检查
      *
      * @param fileEngineEventName file-engine内置类的全限定名
      * @param fieldNameTypeMap    检查Field的类型
      *                            map中key为Field名称，value为Field类型
+     * @see PluginMain#loadPlugin(Map)
      */
     public static void checkEvent(String fileEngineEventName, Map<String, Class<?>> fieldNameTypeMap) {
         Class<?> aClass;

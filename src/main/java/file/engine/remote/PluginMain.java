@@ -31,27 +31,6 @@ public class PluginMain extends Plugin {
     private final String commandOpen = ">open";
 
     /**
-     * Deprecated
-     * 您应该通过loadPlugin加载主题，并通过configsChanged更新主题
-     *
-     * @param defaultColor    这是颜色的RGB代码。JLabel未被选择时，将显示为此颜色。
-     * @param choseLabelColor 这是颜色的RGB代码。JLabel被选中时，将显示为此颜色。
-     * @param borderColor     这是文件引擎的边框颜色，不推荐使用，您不应该在插件中设置标签的边框。
-     *                        但是，您仍然可以通过此参数了解边框颜色。
-     * @see #loadPlugin(Map)
-     * @see #configsChanged(Map)
-     * 这用于File-Engine告诉插件当前的主题设置。
-     * 当用户选择JLabel时，可以将JLabel背景设置为chosenLabelColor。
-     * 当用户未选择JLabel时，可以将JLabel背景设置为defaultColor。
-     * @see #showResultOnLabel(String, JLabel, boolean)
-     */
-    @Override
-    @Deprecated
-    public void setCurrentTheme(int defaultColor, int choseLabelColor, int borderColor) {
-
-    }
-
-    /**
      * 当用户修改FIle-Engine的设置后，将调用此函数。
      *
      * @param configs configs
@@ -108,6 +87,7 @@ public class PluginMain extends Plugin {
     @Override
     public void loadPlugin(Map<String, Object> configs) throws RuntimeException {
         try {
+            VersionUtil.registerDownloadListener();
             HashMap<String, Class<?>> startSearchEventFields = new HashMap<>();
             startSearchEventFields.put("searchCase", Supplier.class);
             startSearchEventFields.put("searchText", Supplier.class);
@@ -132,7 +112,7 @@ public class PluginMain extends Plugin {
                         searchInfo[2]);
                 displayMessage("提示", "File-Engine接收到一个搜索请求");
             });
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
@@ -445,5 +425,28 @@ public class PluginMain extends Plugin {
     @SuppressWarnings("unused")
     public String restoreFileEngineEventHandler() {
         return _pollFromRestoreQueue();
+    }
+
+    /**
+     * Do Not Remove, this is used for File-Engine to add an event listener for this plugin.
+     * The object array contains two parts.
+     * object[0] contains the fully-qualified name of class.
+     * object[1] contains a consumer to execute when the event is finished.
+     *
+     * @return Event listener
+     */
+    @SuppressWarnings("unused")
+    public Object[] pollFromEventListenerQueue() {
+        return _pollFromEventListenerQueue();
+    }
+
+    /**
+     * Do Not Remove, this is used to remove a plugin registered event listener.
+     *
+     * @return Event class fully-qualified name
+     */
+    @SuppressWarnings("unused")
+    public String[] removeFileEngineEventListener() {
+        return _pollFromRemoveListenerQueue();
     }
 }
