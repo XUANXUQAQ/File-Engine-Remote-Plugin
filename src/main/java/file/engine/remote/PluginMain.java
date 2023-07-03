@@ -1,6 +1,5 @@
 package file.engine.remote;
 
-import file.engine.remote.events.SendSearchEvent;
 import file.engine.remote.httpd.HttpServer;
 import file.engine.remote.utils.ColorUtils;
 import file.engine.remote.utils.OpenUtil;
@@ -12,12 +11,10 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public class PluginMain extends Plugin {
@@ -104,14 +101,6 @@ public class PluginMain extends Plugin {
             labelChosenFontColor = new Color((Integer) configs.get("fontColorWithCoverage"));
             ConfigsUtil configsUtil = ConfigsUtil.getInstance();
             httpServer = new HttpServer(configsUtil.getPort());
-            registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
-                Object[] searchInfo = httpServer.getSearchInfo();
-                sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
-                        searchInfo[0],
-                        searchInfo[1],
-                        searchInfo[2]);
-                displayMessage("提示", "File-Engine接收到一个搜索请求");
-            });
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -325,128 +314,8 @@ public class PluginMain extends Plugin {
      * @see #sendEventToFileEngine(String, Object...)
      * @see #sendEventToFileEngine(Event)
      */
-    @SuppressWarnings("unchecked")
     @Override
+    @Deprecated
     public void eventProcessed(Class<?> c, Object eventInstance) {
-        if ("file.engine.event.handler.impl.database.SearchDoneEvent".equals(c.getName())) {
-            try {
-                Field searchResults = c.getDeclaredField("searchResults");
-                ConcurrentLinkedQueue<String> results = (ConcurrentLinkedQueue<String>) searchResults.get(eventInstance);
-                httpServer.setSearchResults(results);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    //--------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Do Not Remove, this is used for File-Engine to get message from the plugin.
-     * You can show message using "displayMessage(String caption, String message)"
-     *
-     * @return String[2], the first string is caption, the second string is message.
-     * @see #displayMessage(String, String)
-     */
-    @SuppressWarnings("unused")
-    public String[] getMessage() {
-        return _getMessage();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to get results from the plugin
-     * You can add result using "addToResultQueue(String result)".
-     *
-     * @return result
-     * @see #addToResultQueue(String)
-     */
-    @SuppressWarnings("unused")
-    public String pollFromResultQueue() {
-        return _pollFromResultQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to check the API version.
-     *
-     * @return Api version
-     */
-    @SuppressWarnings("unused")
-    public int getApiVersion() {
-        return _getApiVersion();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to clear results to prepare for the next time.
-     *
-     * @see #addToResultQueue(String)
-     * @see #pollFromResultQueue()
-     */
-    @SuppressWarnings("unused")
-    public void clearResultQueue() {
-        _clearResultQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to poll the event that send from the plugin.
-     * The object array contains two parts.
-     * object[0] contains the fully-qualified name of class.
-     * object[1] contains the params that the event need to build an instance.
-     * To send an event to File-Engine
-     *
-     * @return Event
-     * @see #sendEventToFileEngine(String, Object...)
-     * @see #sendEventToFileEngine(Event)
-     */
-    @SuppressWarnings("unused")
-    public Object[] pollFromEventQueue() {
-        return _pollFromEventQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to replace the handler which the plugin is registered.
-     * The object array contains two parts.
-     * object[0] contains the fully-qualified name of class.
-     * object[1] contains a consumer to hande the event.
-     *
-     * @return Event handler
-     * @see #registerFileEngineEventHandler(String, BiConsumer)
-     */
-    @SuppressWarnings("unused")
-    public Object[] pollFromEventHandlerQueue() {
-        return _pollEventHandlerQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to restore the handler which the plugin is registered.
-     *
-     * @return Event class fully-qualified name
-     * @see #restoreFileEngineEventHandler(String)
-     */
-    @SuppressWarnings("unused")
-    public String restoreFileEngineEventHandler() {
-        return _pollFromRestoreQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used for File-Engine to add an event listener for this plugin.
-     * The object array contains two parts.
-     * object[0] contains the fully-qualified name of class.
-     * object[1] contains a consumer to execute when the event is finished.
-     *
-     * @return Event listener
-     */
-    @SuppressWarnings("unused")
-    public Object[] pollFromEventListenerQueue() {
-        return _pollFromEventListenerQueue();
-    }
-
-    /**
-     * Do Not Remove, this is used to remove a plugin registered event listener.
-     *
-     * @return Event class fully-qualified name
-     */
-    @SuppressWarnings("unused")
-    public String[] removeFileEngineEventListener() {
-        return _pollFromRemoveListenerQueue();
     }
 }

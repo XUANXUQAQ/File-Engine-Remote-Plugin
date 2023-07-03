@@ -9,6 +9,7 @@ import file.engine.remote.utils.zip.FileZipUtil;
 import lombok.SneakyThrows;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -170,9 +171,26 @@ public class HttpServer extends NanoHTTPD {
         suffixMimeMap.put("ico", "image/x-icon");
     }
 
+    @SuppressWarnings("unchecked")
     public HttpServer(int port) throws IOException {
         super(port);
         start(SOCKET_READ_TIMEOUT, false);
+        Plugin.registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
+            Object[] searchInfo = getSearchInfo();
+            Plugin.sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
+                    searchInfo[0],
+                    searchInfo[1],
+                    searchInfo[2]);
+            Plugin.displayMessage("提示", "File-Engine接收到一个搜索请求");
+        });
+        Plugin.registerFileEngineEventListener("file.engine.event.handler.impl.database.SearchDoneEvent", "searchDoneListener", (c, eventInstance) -> {
+            try {
+                Field searchResults = c.getDeclaredField("searchResults");
+                this.searchResults = (ConcurrentLinkedQueue<String>) searchResults.get(eventInstance);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -341,21 +359,12 @@ public class HttpServer extends NanoHTTPD {
      *
      * @return object
      */
-    public Object[] getSearchInfo() {
+    private Object[] getSearchInfo() {
         Object[] info = new Object[3];
         info[0] = (Supplier<String>) () -> searchText;
         info[1] = (Supplier<String[]>) () -> searchCase;
         info[2] = (Supplier<String[]>) () -> keywords;
         return info;
-    }
-
-    /**
-     * 设置搜索结果
-     *
-     * @param results 搜索结果
-     */
-    public void setSearchResults(ConcurrentLinkedQueue<String> results) {
-        searchResults = results;
     }
 
     /**
