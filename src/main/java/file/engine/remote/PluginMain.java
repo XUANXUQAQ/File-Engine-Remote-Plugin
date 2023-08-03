@@ -318,4 +318,12 @@ public class PluginMain extends Plugin {
     @Deprecated
     public void eventProcessed(Class<?> c, Object eventInstance) {
     }
+
+    public void openSettings() {
+        try {
+            OpenUtil.openFolderByExplorer(ConfigsUtil.CONFIGURATION_FILE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
