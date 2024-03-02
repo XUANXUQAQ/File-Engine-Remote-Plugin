@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -91,17 +93,23 @@ public class PluginMain extends Plugin {
             startSearchEventFields.put("keywords", Supplier.class);
             checkEvent("file.engine.event.handler.impl.database.StartSearchEvent", startSearchEventFields);
 
-            HashMap<String, Class<?>> searchDoneEventFields = new HashMap<>();
-            searchDoneEventFields.put("searchResults", ConcurrentLinkedQueue.class);
-            checkEvent("file.engine.event.handler.impl.database.SearchDoneEvent", searchDoneEventFields);
-
+            boolean isCoreExist = false;
+            try {
+                checkEvent("file.engine.event.handler.impl.database.StartCoreEvent", Collections.emptyMap());
+                isCoreExist = true;
+            } catch (Exception e) {
+                HashMap<String, Class<?>> searchDoneEventFields = new HashMap<>();
+                searchDoneEventFields.put("searchResults", ConcurrentLinkedQueue.class);
+                checkEvent("file.engine.event.handler.impl.database.SearchDoneEvent", searchDoneEventFields);
+            }
             backgroundColor = new Color((Integer) configs.get("defaultBackground"));
             labelChosenColor = new Color((Integer) configs.get("labelColor"));
             labelDefaultFontColor = new Color((Integer) configs.get("fontColor"));
             labelChosenFontColor = new Color((Integer) configs.get("fontColorWithCoverage"));
             ConfigsUtil configsUtil = ConfigsUtil.getInstance();
-            httpServer = new HttpServer(configsUtil.getPort());
-        } catch (IOException | ClassNotFoundException e) {
+            httpServer = new HttpServer(configsUtil.getPort(), isCoreExist);
+        } catch (IOException | ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
+                 IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }

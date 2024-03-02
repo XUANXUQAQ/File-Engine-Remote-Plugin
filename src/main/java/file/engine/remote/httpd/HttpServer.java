@@ -1,15 +1,19 @@
 package file.engine.remote.httpd;
 
+import cn.hutool.http.HttpUtil;
+import com.google.gson.Gson;
 import fi.iki.elonen.NanoHTTPD;
 import file.engine.remote.Plugin;
 import file.engine.remote.events.SendSearchEvent;
 import file.engine.remote.utils.CORSUtil;
 import file.engine.remote.utils.configs.ConfigsUtil;
+import file.engine.remote.utils.gson.GsonUtil;
 import file.engine.remote.utils.zip.FileZipUtil;
 import lombok.SneakyThrows;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -172,25 +176,58 @@ public class HttpServer extends NanoHTTPD {
     }
 
     @SuppressWarnings("unchecked")
-    public HttpServer(int port) throws IOException {
+    public HttpServer(int port, boolean isFileEngineCoreExist) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         super(port);
         start(SOCKET_READ_TIMEOUT, false);
-        Plugin.registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
-            Object[] searchInfo = getSearchInfo();
-            Plugin.sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
-                    searchInfo[0],
-                    searchInfo[1],
-                    searchInfo[2]);
-            Plugin.displayMessage("提示", "File-Engine接收到一个搜索请求");
-        });
-        Plugin.registerFileEngineEventListener("file.engine.event.handler.impl.database.SearchDoneEvent", "searchDoneListener", (c, eventInstance) -> {
-            try {
-                Field searchResults = c.getDeclaredField("searchResults");
-                this.searchResults = (ConcurrentLinkedQueue<String>) searchResults.get(eventInstance);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        });
+        if (isFileEngineCoreExist) {
+            Class<?> databaseClass = Class.forName("file.engine.services.DatabaseNativeService");
+            java.lang.reflect.Method getPortMethod = databaseClass.getMethod("getPort");
+            int corePort = (int) getPortMethod.invoke(null);
+
+            Plugin.registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
+                Object[] searchInfo = getSearchInfo();
+                List<String> results = sendSearchToCore(corePort, searchInfo);
+                this.searchResults = new ConcurrentLinkedQueue<>(results);
+                Plugin.displayMessage("提示", "File-Engine接收到一个搜索请求");
+            });
+        } else {
+            Plugin.registerFileEngineEventHandler(SendSearchEvent.class.getName(), (clazz, obj) -> {
+                Object[] searchInfo = getSearchInfo();
+                Plugin.sendEventToFileEngine("file.engine.event.handler.impl.database.StartSearchEvent",
+                        searchInfo[0],
+                        searchInfo[1],
+                        searchInfo[2]);
+                Plugin.displayMessage("提示", "File-Engine接收到一个搜索请求");
+            });
+            Plugin.registerFileEngineEventListener("file.engine.event.handler.impl.database.SearchDoneEvent", "searchDoneListener", (c, eventInstance) -> {
+                try {
+                    Field searchResults = c.getDeclaredField("searchResults");
+                    this.searchResults = (ConcurrentLinkedQueue<String>) searchResults.get(eventInstance);
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+
+    private static String getUrl(int port) {
+        return String.format("http://127.0.0.1:%d", port);
+    }
+
+    private static List<String> sendSearchToCore(int port, Object[] searchInfo) {
+        String url = getUrl(port) + "/search";
+        HashMap<String, Object> params = new HashMap<>();
+        String[] searchCase = ((Supplier<String[]>) searchInfo[1]).get();
+        if (searchCase != null) {
+            params.put("searchText", String.join(";", ((Supplier<String>) searchInfo[2]).get()) + "|" + String.join(";", searchCase));
+        } else {
+            params.put("searchText", ((Supplier<String[]>) searchInfo[0]).get());
+        }
+        params.put("maxResultNum", 200);
+        String paramsStr = HttpUtil.toParams(params);
+        String results = HttpUtil.post(url + "?" + paramsStr, Collections.emptyMap());
+        Gson gson = GsonUtil.getInstance().getGson();
+        return gson.fromJson(results, List.class);
     }
 
     /**
