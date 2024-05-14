@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class VersionUtil {
 
-    public final static double CURRENT_VERSION = 1.8;
+    public final static double CURRENT_VERSION = 1.9;
 
     private static String updateURL;
 
